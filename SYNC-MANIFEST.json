@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "plugins": [
+    "plugin-manager",
+    "usage-monitor",
+    "harness-sync"
+  ],
+  "excludes": [
+    ".credentials.yaml",
+    "sessions",
+    "storages",
+    "browser-cache"
+  ]
+}

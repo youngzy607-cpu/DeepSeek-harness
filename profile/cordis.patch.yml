@@ -1,0 +1,20 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+
+# dsh-plugin-manager：自定义插件启停管理
+# managed 列表里填写需要管理的自定义插件 id。
+- insert:
+    - id: plugin-manager
+      name: 'dsh-plugin-manager'
+      config:
+        managed:
+          - usage-monitor
+
+    - id: harness-sync
+      name: 'dsh-harness-sync'
+
+    - id: usage-monitor
+      name: 'dsh-usage-monitor'
+      config:
+        baseUrl: 'https://api.deepseek.com'

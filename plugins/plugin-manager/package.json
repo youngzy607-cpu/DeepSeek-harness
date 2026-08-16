@@ -1,0 +1,27 @@
+{
+  "name": "dsh-plugin-manager",
+  "version": "0.1.1",
+  "description": "DeepSeek Harness 自定义插件启停管理：在设置 → 插件中新增“我的插件”，直接启用/停用自定义插件",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "license": "MIT"
+}

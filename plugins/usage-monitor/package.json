@@ -1,0 +1,27 @@
+{
+  "name": "dsh-usage-monitor",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 用量监控插件：实时 token 消耗 + 账户余额（复用 Harness 凭据，密钥不进入浏览器）",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "license": "MIT"
+}

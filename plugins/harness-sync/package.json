@@ -1,0 +1,9 @@
+{
+  "name": "dsh-harness-sync",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js" },
+  "dsh": { "client": { "platform": "web" } }
+}
