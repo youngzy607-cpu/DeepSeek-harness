@@ -8,6 +8,7 @@ const profileRoot = '/Users/jy/.dsh/profiles/web'
 const repoRoot = '/Users/jy/Documents/Codex/DeepSeek-harness-sync-repo'
 const pluginNames = ['plugin-manager', 'usage-monitor', 'harness-sync']
 const withoutDependencies = path => !path.split('/').includes('node_modules')
+const operations = new Map()
 
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
@@ -24,6 +25,30 @@ function run(command, args, cwd = repoRoot) {
     child.once('error', reject)
     child.once('close', code => code === 0 ? resolve({ out, err }) : reject(new Error(err || `${command} exited ${code}`)))
   })
+}
+
+function cleanMessage(error) {
+  return String(error?.message ?? error).replace(/https?:\/\/[^\s@]+@/g, 'https://***@').trim().slice(0, 500)
+}
+
+function createOperation(kind) {
+  const operation = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind, state: 'running', steps: [], startedAt: new Date().toISOString() }
+  operations.set(operation.id, operation)
+  while (operations.size > 12) operations.delete(operations.keys().next().value)
+  return operation
+}
+
+async function record(operation, title, detail, task) {
+  const step = { title, detail, state: 'running', startedAt: new Date().toISOString() }
+  operation.steps.push(step)
+  try {
+    const result = await task()
+    step.state = 'success'; step.finishedAt = new Date().toISOString()
+    return result
+  } catch (error) {
+    step.state = 'failed'; step.error = cleanMessage(error); step.finishedAt = new Date().toISOString()
+    throw error
+  }
 }
 
 async function snapshot() {
@@ -50,6 +75,28 @@ async function restore() {
   return backup
 }
 
+async function execute(operation) {
+  try {
+    if (operation.kind === 'backup') {
+      await record(operation, '生成同步快照', `同步插件：${pluginNames.join('、')}；同步 Web profile 配置。`, snapshot)
+      await record(operation, '检查敏感信息排除', '已排除 API Key、.credentials.yaml、会话、存储、浏览器缓存和 node_modules。', async () => {})
+      await record(operation, '写入 Git 暂存区', '准备提交同步清单、插件源码和 profile 配置。', () => run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins']))
+      const status = await run('git', ['status', '--short'])
+      if (status.out.trim()) await record(operation, '创建本地提交', '记录本次配置快照。', () => run('git', ['commit', '-m', `harness sync ${new Date().toISOString()}`]))
+      else operation.steps.push({ title: '创建本地提交', detail: '配置没有变化，跳过创建新提交。', state: 'skipped' })
+      await record(operation, '推送到 GitHub', '推送到 youngzy607-cpu/DeepSeek-harness 的 main 分支。', () => run('git', ['push', 'origin', 'main']))
+    } else {
+      await record(operation, '拉取远端快照', '从 youngzy607-cpu/DeepSeek-harness 的 main 分支拉取。', () => run('git', ['pull', '--ff-only', 'origin', 'main']))
+      const backup = await record(operation, '备份本机 profile', '先创建本机配置备份，便于恢复。', restore)
+      operation.backup = backup
+      operation.steps.push({ title: '恢复完成', detail: `本机旧配置备份到：${backup}；请重启 Harness。`, state: 'success' })
+    }
+    operation.state = 'success'; operation.finishedAt = new Date().toISOString()
+  } catch (error) {
+    operation.state = 'failed'; operation.error = cleanMessage(error); operation.finishedAt = new Date().toISOString()
+  }
+}
+
 export default {
   name: 'dsh-harness-sync', inject: ['webServer'],
   apply(ctx) {
@@ -60,6 +107,15 @@ export default {
           const branch = await run('git', ['branch', '--show-current'])
           const status = await run('git', ['status', '--short'])
           return json(res, 200, { ok: true, repository: 'youngzy607-cpu/DeepSeek-harness', branch: branch.out.trim() || 'main', dirty: Boolean(status.out.trim()) })
+        }
+        if (req.method === 'POST' && (path === `${PREFIX}/operations/backup` || path === `${PREFIX}/operations/restore`)) {
+          const operation = createOperation(path.endsWith('/backup') ? 'backup' : 'restore')
+          void execute(operation)
+          return json(res, 202, { ok: true, operation })
+        }
+        if (req.method === 'GET' && path.startsWith(`${PREFIX}/operations/`)) {
+          const operation = operations.get(path.slice(`${PREFIX}/operations/`.length))
+          return operation ? json(res, 200, { ok: true, operation }) : json(res, 404, { ok: false, error: { message: '未找到同步任务' } })
         }
         if (req.method === 'POST' && path === `${PREFIX}/backup`) {
           await snapshot(); await run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins'])
