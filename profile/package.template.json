@@ -1,12 +1,6 @@
 {
   "name": "dsh-profile-web",
   "private": true,
-  "dependencies": {
-    "dsh-plugin-manager": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\plugin-manager",
-    "dsh-usage-monitor": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\usage-monitor",
-    "dsh-custom-instructions": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\custom-instructions",
-    "dsh-skill-manager": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\skill-manager"
-  },
   "dsh": {
     "profile": {
       "bundles": [
@@ -14,5 +8,9 @@
         "@deepseek-ai/dsh-web-app"
       ]
     }
+  },
+  "dependencies": {
+    "dsh-plugin-manager": "link:/Users/jy/Documents/DeepSeek harness/plugin-manager",
+    "dsh-usage-monitor": "link:/Users/jy/Documents/DeepSeek harness/usage-monitor"
   }
 }

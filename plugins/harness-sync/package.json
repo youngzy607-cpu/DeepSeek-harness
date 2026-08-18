@@ -1,6 +1,6 @@
 {
   "name": "dsh-harness-sync",
-  "version": "0.1.4",
+  "version": "0.1.9",
   "private": true,
   "type": "module",
   "main": "lib/index.js",

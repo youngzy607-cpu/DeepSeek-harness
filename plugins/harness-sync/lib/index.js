@@ -1,11 +1,15 @@
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
+import { homedir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 
 const PREFIX = '/harness-sync'
-const sourceRoot = 'C:/Users/848484/DeepSeek-harness/plugins'
-const profileRoot = 'C:/Users/848484/.dsh/profiles/web'
-const repoRoot = 'C:/Users/848484/DeepSeek-harness'
+const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const sourceRoot = resolve(pluginRoot, '..')
+const profileRoot = join(homedir(), '.dsh', 'profiles', 'web')
+const repoRoot = process.env.DSH_HARNESS_SYNC_REPO || join(homedir(), 'Documents', 'Codex', 'DeepSeek-harness-sync-repo')
 const pluginNames = ['plugin-manager', 'usage-monitor', 'harness-sync']
 const withoutDependencies = path => !path.split('/').includes('node_modules')
 const operations = new Map()
@@ -15,9 +19,22 @@ function json(res, status, body) {
   res.end(JSON.stringify(body))
 }
 
-function run(command, args, cwd = repoRoot) {
+function macOSProxyEnv() {
+  return new Promise(resolveProxy => {
+    execFile('scutil', ['--proxy'], { timeout: 2500 }, (error, stdout) => {
+      const host = /HTTPSProxy\s*:\s*(\S+)/.exec(stdout)?.[1]
+      const port = /HTTPSPort\s*:\s*(\d+)/.exec(stdout)?.[1]
+      if (error || !/HTTPSEnable\s*:\s*1/.test(stdout) || !host || !port) return resolveProxy({})
+      const proxy = `http://${host}:${port}`
+      resolveProxy({ HTTP_PROXY: proxy, HTTPS_PROXY: proxy, ALL_PROXY: proxy })
+    })
+  })
+}
+
+async function run(command, args, cwd = repoRoot) {
+  const proxyEnv = await macOSProxyEnv()
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], shell: true })
+    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...proxyEnv, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' } })
     let out = ''
     let err = ''
     child.stdout.on('data', c => { out += c })
@@ -25,6 +42,19 @@ function run(command, args, cwd = repoRoot) {
     child.once('error', reject)
     child.once('close', code => code === 0 ? resolve({ out, err }) : reject(new Error(err || `${command} exited ${code}`)))
   })
+}
+
+async function executable(path) {
+  try { await access(path, constants.X_OK); return path } catch { return null }
+}
+
+async function profilePackageManager() {
+  const nodeBin = dirname(process.execPath)
+  const pnpm = await executable(join(nodeBin, 'pnpm'))
+  if (pnpm) return { command: pnpm, args: ['install', '--no-frozen-lockfile'] }
+  const corepack = await executable(join(nodeBin, 'corepack'))
+  if (corepack) return { command: corepack, args: ['pnpm', 'install', '--no-frozen-lockfile'] }
+  throw new Error('未找到 pnpm 或 Corepack。请重新安装 Node.js LTS 后再恢复配置。')
 }
 
 function cleanMessage(error) {
@@ -79,7 +109,8 @@ async function restore() {
     }
   }
   await cp(join(repoRoot, 'profile', 'cordis.patch.yml'), join(profileRoot, 'cordis.patch.yml'), { force: true })
-  await run('pnpm', ['install', '--no-frozen-lockfile'], profileRoot)
+  const packageManager = await profilePackageManager()
+  await run(packageManager.command, packageManager.args, profileRoot)
   return backup
 }
 
