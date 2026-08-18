@@ -98,6 +98,16 @@ function pluginSummary(records) {
   return records.length ? records.map(record => record.directory).join('、') : '无'
 }
 
+async function ensurePluginLoaderEntries(plugins) {
+  const patchPath = join(profileRoot, 'cordis.patch.yml')
+  let content = await readFile(patchPath, 'utf8')
+  const missing = plugins.filter(plugin => !new RegExp(`(^|\\n)\\s*- id:\\s*${plugin.directory}\\s*(\\n|$)`).test(content))
+  if (!missing.length) return []
+  content += `\n# Git 仓库插件自动加载\n- insert:\n${missing.map(plugin => `    - id: ${plugin.directory}\n      name: '${plugin.packageName}'`).join('\n\n')}\n`
+  await writeFile(patchPath, content)
+  return missing
+}
+
 async function snapshot() {
   await mkdir(join(repoRoot, 'plugins'), { recursive: true })
   await mkdir(join(repoRoot, 'profile'), { recursive: true })
@@ -132,9 +142,10 @@ async function restore() {
   packageJson.dependencies ??= {}
   for (const plugin of plugins) packageJson.dependencies[plugin.packageName] = `link:${join(sourceRoot, plugin.directory)}`
   await writeFile(join(profileRoot, 'package.json'), JSON.stringify(packageJson, null, 2) + '\n')
+  const addedLoaders = await ensurePluginLoaderEntries(plugins)
   const packageManager = await profilePackageManager()
   await run(packageManager.command, packageManager.args, profileRoot)
-  return { backup, plugins }
+  return { backup, plugins, addedLoaders }
 }
 
 async function execute(operation) {
@@ -154,7 +165,7 @@ async function execute(operation) {
       const result = await record(operation, '同步 Git 插件', '复制 Git 仓库中的有效插件、更新本机链接并安装依赖。', restore)
       operation.backup = result.backup
       operation.plugins = result.plugins
-      operation.steps.at(-1).detail = `已同步：${pluginSummary(result.plugins)}。`
+      operation.steps.at(-1).detail = `已同步：${pluginSummary(result.plugins)}；${result.addedLoaders.length ? `已补齐加载项：${pluginSummary(result.addedLoaders)}。` : '加载项已就绪。'}`
       operation.steps.push({ title: 'Git 同步完成', detail: `本机旧配置备份到：${result.backup}；请重启 Harness。`, state: 'success' })
     }
     operation.state = 'success'; operation.finishedAt = new Date().toISOString()

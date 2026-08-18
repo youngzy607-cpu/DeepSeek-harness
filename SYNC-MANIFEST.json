@@ -2,12 +2,20 @@
   "version": 3,
   "plugins": [
     {
+      "directory": "custom-instructions",
+      "packageName": "dsh-custom-instructions"
+    },
+    {
       "directory": "harness-sync",
       "packageName": "dsh-harness-sync"
     },
     {
       "directory": "plugin-manager",
       "packageName": "dsh-plugin-manager"
+    },
+    {
+      "directory": "skill-manager",
+      "packageName": "dsh-skill-manager"
     },
     {
       "directory": "usage-monitor",
