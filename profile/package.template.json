@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "dsh-harness-sync": "link:/Users/jy/Documents/DeepSeek harness/harness-sync",
     "dsh-plugin-manager": "link:/Users/jy/Documents/DeepSeek harness/plugin-manager",
     "dsh-usage-monitor": "link:/Users/jy/Documents/DeepSeek harness/usage-monitor"
   }

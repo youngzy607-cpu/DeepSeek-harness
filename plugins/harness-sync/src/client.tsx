@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 
 type Action = 'backup' | 'restore'
 type Step = { title: string, detail: string, state: 'running' | 'success' | 'failed' | 'skipped', error?: string }
-type Operation = { id: string, kind: Action, state: 'running' | 'success' | 'failed', steps: Step[], backup?: string, error?: string }
+type Operation = { id: string, kind: Action, state: 'running' | 'success' | 'failed', steps: Step[], backup?: string, plugins?: { directory: string }[], error?: string }
 
 const panelStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 720 }
 const buttonStyle: CSSProperties = { padding: '8px 14px', borderRadius: 8, border: '1px solid #aaa', cursor: 'pointer' }
@@ -72,6 +72,7 @@ export function HarnessSyncTab(): JSX.Element {
           <span style={{ color: '#666' }}>{step.error ?? step.detail}</span>
         </li>)}
       </ol>
+      {operation.plugins && <p style={{ margin: '12px 0 0' }}>本次插件：{operation.plugins.length ? operation.plugins.map(plugin => plugin.directory).join('、') : '无'}</p>}
     </section>}
     <p style={{ color: '#666', fontSize: 13 }}>安全说明：日志不会显示 API Key、令牌或凭据内容；已排除会话、浏览器缓存与依赖目录。</p>
   </div>

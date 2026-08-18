@@ -1,14 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "plugins": [
-    "plugin-manager",
-    "usage-monitor",
-    "harness-sync"
+    {
+      "directory": "harness-sync",
+      "packageName": "dsh-harness-sync"
+    },
+    {
+      "directory": "plugin-manager",
+      "packageName": "dsh-plugin-manager"
+    },
+    {
+      "directory": "usage-monitor",
+      "packageName": "dsh-usage-monitor"
+    }
   ],
   "excludes": [
     ".credentials.yaml",
     "sessions",
     "storages",
-    "browser-cache"
+    "browser-cache",
+    "dsh-custom-instructions",
+    "dsh-skill-manager"
   ]
 }

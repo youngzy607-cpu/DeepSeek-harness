@@ -93,7 +93,11 @@ function HarnessSyncTab() {
         step.title,
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#666" }, children: step.error ?? step.detail })
-      ] }, `${step.title}-${index}`)) })
+      ] }, `${step.title}-${index}`)) }),
+      operation.plugins && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "12px 0 0" }, children: [
+        "\u672C\u6B21\u63D2\u4EF6\uFF1A",
+        operation.plugins.length ? operation.plugins.map((plugin) => plugin.directory).join("\u3001") : "\u65E0"
+      ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { color: "#666", fontSize: 13 }, children: "\u5B89\u5168\u8BF4\u660E\uFF1A\u65E5\u5FD7\u4E0D\u4F1A\u663E\u793A API Key\u3001\u4EE4\u724C\u6216\u51ED\u636E\u5185\u5BB9\uFF1B\u5DF2\u6392\u9664\u4F1A\u8BDD\u3001\u6D4F\u89C8\u5668\u7F13\u5B58\u4E0E\u4F9D\u8D56\u76EE\u5F55\u3002" })
   ] });

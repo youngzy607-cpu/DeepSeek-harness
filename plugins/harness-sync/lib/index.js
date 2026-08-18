@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { execFile, spawn } from 'node:child_process'
@@ -10,7 +10,7 @@ const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sourceRoot = resolve(pluginRoot, '..')
 const profileRoot = join(homedir(), '.dsh', 'profiles', 'web')
 const repoRoot = process.env.DSH_HARNESS_SYNC_REPO || join(homedir(), 'Documents', 'Codex', 'DeepSeek-harness-sync-repo')
-const pluginNames = ['plugin-manager', 'usage-monitor', 'harness-sync']
+const excludedPluginPackages = new Set(['dsh-custom-instructions', 'dsh-skill-manager'])
 const withoutDependencies = path => !path.split('/').includes('node_modules')
 const operations = new Map()
 
@@ -81,43 +81,69 @@ async function record(operation, title, detail, task) {
   }
 }
 
+async function pluginRecords(root) {
+  const entries = await readdir(root, { withFileTypes: true })
+  const records = []
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules') continue
+    try {
+      const packageJson = JSON.parse(await readFile(join(root, entry.name, 'package.json'), 'utf8'))
+      if (typeof packageJson.name !== 'string' || !packageJson.name.startsWith('dsh-') || excludedPluginPackages.has(packageJson.name)) continue
+      records.push({ directory: entry.name, packageName: packageJson.name })
+    } catch { /* 不是可同步的 Harness 插件目录 */ }
+  }
+  return records.sort((left, right) => left.directory.localeCompare(right.directory))
+}
+
+function pluginSummary(records) {
+  return records.length ? records.map(record => record.directory).join('、') : '无'
+}
+
 async function snapshot() {
   await mkdir(join(repoRoot, 'plugins'), { recursive: true })
   await mkdir(join(repoRoot, 'profile'), { recursive: true })
-  for (const name of pluginNames) {
-    const src = join(sourceRoot, name)
-    const dest = join(repoRoot, 'plugins', name)
+  const plugins = await pluginRecords(sourceRoot)
+  for (const plugin of plugins) {
+    const src = join(sourceRoot, plugin.directory)
+    const dest = join(repoRoot, 'plugins', plugin.directory)
     if (resolve(src) !== resolve(dest)) {
       await cp(src, dest, { recursive: true, force: true, filter: withoutDependencies })
     }
   }
   await cp(join(profileRoot, 'cordis.patch.yml'), join(repoRoot, 'profile', 'cordis.patch.yml'), { force: true })
   const packageJson = JSON.parse(await readFile(join(profileRoot, 'package.json'), 'utf8'))
-  delete packageJson.dependencies?.['dsh-harness-sync']
   await writeFile(join(repoRoot, 'profile', 'package.template.json'), JSON.stringify(packageJson, null, 2) + '\n')
-  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 1, plugins: pluginNames, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache'] }, null, 2) + '\n')
+  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 2, plugins, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache', ...excludedPluginPackages] }, null, 2) + '\n')
+  return plugins
 }
 
 async function restore() {
   const backup = `${profileRoot}.before-sync-${Date.now()}`
   await cp(profileRoot, backup, { recursive: true, force: true, filter: withoutDependencies })
-  for (const name of pluginNames) {
-    const src = join(repoRoot, 'plugins', name)
-    const dest = join(sourceRoot, name)
+  const plugins = await pluginRecords(join(repoRoot, 'plugins'))
+  for (const plugin of plugins) {
+    const src = join(repoRoot, 'plugins', plugin.directory)
+    const dest = join(sourceRoot, plugin.directory)
     if (resolve(src) !== resolve(dest)) {
       await cp(src, dest, { recursive: true, force: true, filter: withoutDependencies })
     }
   }
   await cp(join(repoRoot, 'profile', 'cordis.patch.yml'), join(profileRoot, 'cordis.patch.yml'), { force: true })
+  const packageJson = JSON.parse(await readFile(join(profileRoot, 'package.json'), 'utf8'))
+  packageJson.dependencies ??= {}
+  for (const plugin of plugins) packageJson.dependencies[plugin.packageName] = `link:${join(sourceRoot, plugin.directory)}`
+  await writeFile(join(profileRoot, 'package.json'), JSON.stringify(packageJson, null, 2) + '\n')
   const packageManager = await profilePackageManager()
   await run(packageManager.command, packageManager.args, profileRoot)
-  return backup
+  return { backup, plugins }
 }
 
 async function execute(operation) {
   try {
     if (operation.kind === 'backup') {
-      await record(operation, '生成同步快照', `同步插件：${pluginNames.join('、')}；同步 Web profile 配置。`, snapshot)
+      const plugins = await record(operation, '生成同步快照', '扫描当前 Harness 自定义插件并生成 Git 快照。', snapshot)
+      operation.plugins = plugins
+      operation.steps.at(-1).detail = `已写入 Git 快照：${pluginSummary(plugins)}。`
       await record(operation, '检查敏感信息排除', '已排除 API Key、.credentials.yaml、会话、存储、浏览器缓存和 node_modules。', async () => {})
       await record(operation, '写入 Git 暂存区', '准备提交同步清单、插件源码和 profile 配置。', () => run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins']))
       const status = await run('git', ['status', '--short'])
@@ -126,9 +152,11 @@ async function execute(operation) {
       await record(operation, '推送到 GitHub', '推送到 youngzy607-cpu/DeepSeek-harness 的 main 分支。', () => run('git', ['push', 'origin', 'main']))
     } else {
       await record(operation, '拉取 Git 配置', '从 youngzy607-cpu/DeepSeek-harness 的 main 分支同步。', () => run('git', ['pull', '--ff-only', 'origin', 'main']))
-      const backup = await record(operation, '备份本机配置', '同步前创建本机配置备份，便于回退。', restore)
-      operation.backup = backup
-      operation.steps.push({ title: 'Git 同步完成', detail: `本机旧配置备份到：${backup}；请重启 Harness。`, state: 'success' })
+      const result = await record(operation, '同步 Git 插件', '复制 Git 仓库中的有效插件、更新本机链接并安装依赖。', restore)
+      operation.backup = result.backup
+      operation.plugins = result.plugins
+      operation.steps.at(-1).detail = `已同步：${pluginSummary(result.plugins)}。`
+      operation.steps.push({ title: 'Git 同步完成', detail: `本机旧配置备份到：${result.backup}；请重启 Harness。`, state: 'success' })
     }
     operation.state = 'success'; operation.finishedAt = new Date().toISOString()
   } catch (error) {
