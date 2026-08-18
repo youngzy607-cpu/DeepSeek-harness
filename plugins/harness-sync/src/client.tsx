@@ -50,7 +50,7 @@ export function HarnessSyncTab(): JSX.Element {
         current = await readOperation(current.id)
         setOperation(current)
       }
-      setMessage(current.state === 'success' ? (action === 'restore' ? '恢复完成，请重启 Harness。' : '备份与推送完成。') : `同步失败：${current.error ?? '请查看失败步骤。'}`)
+      setMessage(current.state === 'success' ? (action === 'restore' ? 'Git 同步完成，请重启 Harness。' : '备份与推送完成。') : `同步失败：${current.error ?? '请查看失败步骤。'}`)
     } catch (error) { setMessage(`操作失败：${error instanceof Error ? error.message : String(error)}`) } finally { setBusy(false) }
   }
 
@@ -62,10 +62,10 @@ export function HarnessSyncTab(): JSX.Element {
     <p>{message}</p>
     <div style={{ display: 'flex', gap: 10 }}>
       <button type="button" style={buttonStyle} disabled={busy} onClick={() => void run('backup')}>备份到 Git</button>
-      <button type="button" style={buttonStyle} disabled={busy} onClick={() => void run('restore')}>从 Git 恢复</button>
+      <button type="button" style={buttonStyle} disabled={busy} onClick={() => void run('restore')}>同步 Git</button>
     </div>
     {operation && <section style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12 }}>
-      <strong>{operation.kind === 'restore' ? '恢复进度' : '备份进度'}</strong>
+      <strong>{operation.kind === 'restore' ? 'Git 同步进度' : '备份进度'}</strong>
       <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
         {operation.steps.map((step, index) => <li key={`${step.title}-${index}`} style={{ margin: '6px 0' }}>
           <b>{step.state === 'running' ? '处理中' : step.state === 'success' ? '完成' : step.state === 'skipped' ? '跳过' : '失败'}</b>：{step.title}<br />

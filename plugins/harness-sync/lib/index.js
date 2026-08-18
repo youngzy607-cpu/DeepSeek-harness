@@ -54,7 +54,7 @@ async function profilePackageManager() {
   if (pnpm) return { command: pnpm, args: ['install', '--no-frozen-lockfile'] }
   const corepack = await executable(join(nodeBin, 'corepack'))
   if (corepack) return { command: corepack, args: ['pnpm', 'install', '--no-frozen-lockfile'] }
-  throw new Error('未找到 pnpm 或 Corepack。请重新安装 Node.js LTS 后再恢复配置。')
+  throw new Error('未找到 pnpm 或 Corepack。请重新安装 Node.js LTS 后再同步 Git。')
 }
 
 function cleanMessage(error) {
@@ -125,10 +125,10 @@ async function execute(operation) {
       else operation.steps.push({ title: '创建本地提交', detail: '配置没有变化，跳过创建新提交。', state: 'skipped' })
       await record(operation, '推送到 GitHub', '推送到 youngzy607-cpu/DeepSeek-harness 的 main 分支。', () => run('git', ['push', 'origin', 'main']))
     } else {
-      await record(operation, '拉取远端快照', '从 youngzy607-cpu/DeepSeek-harness 的 main 分支拉取。', () => run('git', ['pull', '--ff-only', 'origin', 'main']))
-      const backup = await record(operation, '备份本机 profile', '先创建本机配置备份，便于恢复。', restore)
+      await record(operation, '拉取 Git 配置', '从 youngzy607-cpu/DeepSeek-harness 的 main 分支同步。', () => run('git', ['pull', '--ff-only', 'origin', 'main']))
+      const backup = await record(operation, '备份本机配置', '同步前创建本机配置备份，便于回退。', restore)
       operation.backup = backup
-      operation.steps.push({ title: '恢复完成', detail: `本机旧配置备份到：${backup}；请重启 Harness。`, state: 'success' })
+      operation.steps.push({ title: 'Git 同步完成', detail: `本机旧配置备份到：${backup}；请重启 Harness。`, state: 'success' })
     }
     operation.state = 'success'; operation.finishedAt = new Date().toISOString()
   } catch (error) {

@@ -67,7 +67,7 @@ function HarnessSyncTab() {
         current = await readOperation(current.id);
         setOperation(current);
       }
-      setMessage(current.state === "success" ? action === "restore" ? "\u6062\u590D\u5B8C\u6210\uFF0C\u8BF7\u91CD\u542F Harness\u3002" : "\u5907\u4EFD\u4E0E\u63A8\u9001\u5B8C\u6210\u3002" : `\u540C\u6B65\u5931\u8D25\uFF1A${current.error ?? "\u8BF7\u67E5\u770B\u5931\u8D25\u6B65\u9AA4\u3002"}`);
+      setMessage(current.state === "success" ? action === "restore" ? "Git \u540C\u6B65\u5B8C\u6210\uFF0C\u8BF7\u91CD\u542F Harness\u3002" : "\u5907\u4EFD\u4E0E\u63A8\u9001\u5B8C\u6210\u3002" : `\u540C\u6B65\u5931\u8D25\uFF1A${current.error ?? "\u8BF7\u67E5\u770B\u5931\u8D25\u6B65\u9AA4\u3002"}`);
     } catch (error) {
       setMessage(`\u64CD\u4F5C\u5931\u8D25\uFF1A${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -83,10 +83,10 @@ function HarnessSyncTab() {
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: message }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 10 }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", style: buttonStyle, disabled: busy, onClick: () => void run("backup"), children: "\u5907\u4EFD\u5230 Git" }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", style: buttonStyle, disabled: busy, onClick: () => void run("restore"), children: "\u4ECE Git \u6062\u590D" })
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", style: buttonStyle, disabled: busy, onClick: () => void run("restore"), children: "\u540C\u6B65 Git" })
     ] }),
     operation && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { style: { border: "1px solid #ddd", borderRadius: 8, padding: 12 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: operation.kind === "restore" ? "\u6062\u590D\u8FDB\u5EA6" : "\u5907\u4EFD\u8FDB\u5EA6" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: operation.kind === "restore" ? "Git \u540C\u6B65\u8FDB\u5EA6" : "\u5907\u4EFD\u8FDB\u5EA6" }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ol", { style: { margin: "8px 0 0", paddingLeft: 20 }, children: operation.steps.map((step, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { style: { margin: "6px 0" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: step.state === "running" ? "\u5904\u7406\u4E2D" : step.state === "success" ? "\u5B8C\u6210" : step.state === "skipped" ? "\u8DF3\u8FC7" : "\u5931\u8D25" }),
         "\uFF1A",
