@@ -5,11 +5,15 @@
 # dsh-plugin-manager：自定义插件启停管理
 # managed 列表里填写需要管理的自定义插件 id。
 - insert:
+    - id: custom-instructions
+      name: 'dsh-custom-instructions'
+
     - id: plugin-manager
       name: 'dsh-plugin-manager'
       config:
         managed:
           - usage-monitor
+          - custom-instructions
 
     - id: harness-sync
       name: 'dsh-harness-sync'

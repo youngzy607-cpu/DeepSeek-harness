@@ -1,0 +1,27 @@
+{
+  "name": "dsh-custom-instructions",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 全局自定义指令编辑器：在设置 → 我的插件中编辑 ~/.dsh/AGENTS.md，Harness 会在每次会话自动加载并遵守这些规则",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "license": "MIT"
+}

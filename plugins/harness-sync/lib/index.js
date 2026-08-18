@@ -1,11 +1,11 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 
 const PREFIX = '/harness-sync'
-const sourceRoot = '/Users/jy/Documents/DeepSeek harness'
-const profileRoot = '/Users/jy/.dsh/profiles/web'
-const repoRoot = '/Users/jy/Documents/Codex/DeepSeek-harness-sync-repo'
+const sourceRoot = 'C:/Users/848484/DeepSeek-harness/plugins'
+const profileRoot = 'C:/Users/848484/.dsh/profiles/web'
+const repoRoot = 'C:/Users/848484/DeepSeek-harness'
 const pluginNames = ['plugin-manager', 'usage-monitor', 'harness-sync']
 const withoutDependencies = path => !path.split('/').includes('node_modules')
 const operations = new Map()
@@ -17,7 +17,7 @@ function json(res, status, body) {
 
 function run(command, args, cwd = repoRoot) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], shell: true })
     let out = ''
     let err = ''
     child.stdout.on('data', c => { out += c })
@@ -55,7 +55,11 @@ async function snapshot() {
   await mkdir(join(repoRoot, 'plugins'), { recursive: true })
   await mkdir(join(repoRoot, 'profile'), { recursive: true })
   for (const name of pluginNames) {
-    await cp(join(sourceRoot, name), join(repoRoot, 'plugins', name), { recursive: true, force: true, filter: withoutDependencies })
+    const src = join(sourceRoot, name)
+    const dest = join(repoRoot, 'plugins', name)
+    if (resolve(src) !== resolve(dest)) {
+      await cp(src, dest, { recursive: true, force: true, filter: withoutDependencies })
+    }
   }
   await cp(join(profileRoot, 'cordis.patch.yml'), join(repoRoot, 'profile', 'cordis.patch.yml'), { force: true })
   const packageJson = JSON.parse(await readFile(join(profileRoot, 'package.json'), 'utf8'))
@@ -68,7 +72,11 @@ async function restore() {
   const backup = `${profileRoot}.before-sync-${Date.now()}`
   await cp(profileRoot, backup, { recursive: true, force: true, filter: withoutDependencies })
   for (const name of pluginNames) {
-    await cp(join(repoRoot, 'plugins', name), join(sourceRoot, name), { recursive: true, force: true, filter: withoutDependencies })
+    const src = join(repoRoot, 'plugins', name)
+    const dest = join(sourceRoot, name)
+    if (resolve(src) !== resolve(dest)) {
+      await cp(src, dest, { recursive: true, force: true, filter: withoutDependencies })
+    }
   }
   await cp(join(repoRoot, 'profile', 'cordis.patch.yml'), join(profileRoot, 'cordis.patch.yml'), { force: true })
   await run('pnpm', ['install', '--no-frozen-lockfile'], profileRoot)
@@ -82,7 +90,7 @@ async function execute(operation) {
       await record(operation, '检查敏感信息排除', '已排除 API Key、.credentials.yaml、会话、存储、浏览器缓存和 node_modules。', async () => {})
       await record(operation, '写入 Git 暂存区', '准备提交同步清单、插件源码和 profile 配置。', () => run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins']))
       const status = await run('git', ['status', '--short'])
-      if (status.out.trim()) await record(operation, '创建本地提交', '记录本次配置快照。', () => run('git', ['commit', '-m', `harness sync ${new Date().toISOString()}`]))
+      if (status.out.trim()) await record(operation, '创建本地提交', '记录本次配置快照。', () => run('git', ['commit', '-m', `"harness sync ${new Date().toISOString()}"`]))
       else operation.steps.push({ title: '创建本地提交', detail: '配置没有变化，跳过创建新提交。', state: 'skipped' })
       await record(operation, '推送到 GitHub', '推送到 youngzy607-cpu/DeepSeek-harness 的 main 分支。', () => run('git', ['push', 'origin', 'main']))
     } else {
@@ -120,7 +128,7 @@ export default {
         if (req.method === 'POST' && path === `${PREFIX}/backup`) {
           await snapshot(); await run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins'])
           const status = await run('git', ['status', '--short'])
-          if (status.out.trim()) await run('git', ['commit', '-m', `harness sync ${new Date().toISOString()}`])
+          if (status.out.trim()) await run('git', ['commit', '-m', `"harness sync ${new Date().toISOString()}"`])
           await run('git', ['push', 'origin', 'main'])
           return json(res, 200, { ok: true })
         }
