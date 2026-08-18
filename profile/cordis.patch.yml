@@ -8,12 +8,16 @@
     - id: custom-instructions
       name: 'dsh-custom-instructions'
 
+    - id: skill-manager
+      name: 'dsh-skill-manager'
+
     - id: plugin-manager
       name: 'dsh-plugin-manager'
       config:
         managed:
           - usage-monitor
           - custom-instructions
+          - skill-manager
 
     - id: harness-sync
       name: 'dsh-harness-sync'
