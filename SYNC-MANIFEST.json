@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "plugins": [
     {
       "directory": "harness-sync",
@@ -19,7 +19,6 @@
     "sessions",
     "storages",
     "browser-cache",
-    "dsh-custom-instructions",
-    "dsh-skill-manager"
+    "node_modules"
   ]
 }

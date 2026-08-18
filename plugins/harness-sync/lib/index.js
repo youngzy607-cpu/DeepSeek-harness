@@ -10,7 +10,6 @@ const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sourceRoot = resolve(pluginRoot, '..')
 const profileRoot = join(homedir(), '.dsh', 'profiles', 'web')
 const repoRoot = process.env.DSH_HARNESS_SYNC_REPO || join(homedir(), 'Documents', 'Codex', 'DeepSeek-harness-sync-repo')
-const excludedPluginPackages = new Set(['dsh-custom-instructions', 'dsh-skill-manager'])
 const withoutDependencies = path => !path.split('/').includes('node_modules')
 const operations = new Map()
 
@@ -88,7 +87,7 @@ async function pluginRecords(root) {
     if (!entry.isDirectory() || entry.name === 'node_modules') continue
     try {
       const packageJson = JSON.parse(await readFile(join(root, entry.name, 'package.json'), 'utf8'))
-      if (typeof packageJson.name !== 'string' || !packageJson.name.startsWith('dsh-') || excludedPluginPackages.has(packageJson.name)) continue
+      if (typeof packageJson.name !== 'string' || !packageJson.name.startsWith('dsh-')) continue
       records.push({ directory: entry.name, packageName: packageJson.name })
     } catch { /* 不是可同步的 Harness 插件目录 */ }
   }
@@ -113,7 +112,7 @@ async function snapshot() {
   await cp(join(profileRoot, 'cordis.patch.yml'), join(repoRoot, 'profile', 'cordis.patch.yml'), { force: true })
   const packageJson = JSON.parse(await readFile(join(profileRoot, 'package.json'), 'utf8'))
   await writeFile(join(repoRoot, 'profile', 'package.template.json'), JSON.stringify(packageJson, null, 2) + '\n')
-  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 2, plugins, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache', ...excludedPluginPackages] }, null, 2) + '\n')
+  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 3, plugins, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache', 'node_modules'] }, null, 2) + '\n')
   return plugins
 }
 
