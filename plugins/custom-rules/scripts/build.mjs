@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const banner = [
   'window.__ModuleLoader__.load({',
-  '\tid: "dsh-custom-instructions",',
+  '\tid: "dsh-custom-rules",',
   '\tfactory: (require) => {',
   '\t\tvar module = { exports: {} };',
   '\t\tvar exports = module.exports;',

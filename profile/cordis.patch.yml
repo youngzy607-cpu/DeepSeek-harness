@@ -10,14 +10,14 @@
       config:
         managed:
           - usage-monitor
-          - custom-instructions
+          - custom-rules
           - skill-manager
 
     - id: harness-sync
       name: 'dsh-harness-sync'
 
-    - id: custom-instructions
-      name: 'dsh-custom-instructions'
+    - id: custom-rules
+      name: 'dsh-custom-rules'
 
     - id: skill-manager
       name: 'dsh-skill-manager'

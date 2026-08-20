@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: "dsh-custom-instructions",
+	id: "dsh-custom-rules",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
@@ -26,21 +26,21 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/client.tsx
 var client_exports = {};
 __export(client_exports, {
-  CustomInstructionsTab: () => CustomInstructionsTab,
+  CustomRulesTab: () => CustomRulesTab,
   apply: () => apply,
   inject: () => inject
 });
 module.exports = __toCommonJS(client_exports);
 var import_react = require("react");
 var import_jsx_runtime = require("react/jsx-runtime");
-var NS = "custom-instructions";
+var NS = "custom-rules";
 var zh = {
-  "tab": "\u81EA\u5B9A\u4E49\u6307\u4EE4",
-  "title": "\u5168\u5C40\u81EA\u5B9A\u4E49\u6307\u4EE4",
+  "tab": "\u81EA\u5B9A\u4E49\u89C4\u5219",
+  "title": "\u5168\u5C40\u81EA\u5B9A\u4E49\u89C4\u5219",
   "hint": "\u6B64\u5904\u7F16\u8F91\u7684\u5185\u5BB9\u4F1A\u4FDD\u5B58\u5230 ~/.dsh/AGENTS.md\uFF0CHarness \u5728\u6BCF\u6B21\u4F1A\u8BDD\u5F00\u59CB\u65F6\u81EA\u52A8\u52A0\u8F7D\u5E76\u9075\u5B88\u8FD9\u4E9B\u89C4\u5219\u3002\u89C4\u5219\u4E0D\u4F1A\u8986\u76D6\u7CFB\u7EDF\u3001\u5F00\u53D1\u8005\u6216\u76F4\u63A5\u7528\u6237\u6307\u4EE4\u3002",
   "placeholder": "\u5728\u6B64\u8F93\u5165\u4F60\u7684\u81EA\u5B9A\u4E49\u89C4\u5219\u2026\n\n\u4F8B\u5982\uFF1A\n- \u6BCF\u6B21\u56DE\u590D\u7528\u4E2D\u6587\n- \u4EE3\u7801\u6CE8\u91CA\u7528\u82F1\u6587\n- \u4F18\u5148\u4F7F\u7528\u51FD\u6570\u5F0F\u98CE\u683C",
-  "loading": "\u6B63\u5728\u8BFB\u53D6\u6307\u4EE4\u2026",
-  "loadError": "\u8BFB\u53D6\u6307\u4EE4\u5931\u8D25",
+  "loading": "\u6B63\u5728\u8BFB\u53D6\u89C4\u5219\u2026",
+  "loadError": "\u8BFB\u53D6\u89C4\u5219\u5931\u8D25",
   "retry": "\u91CD\u8BD5",
   "save": "\u4FDD\u5B58",
   "saving": "\u4FDD\u5B58\u4E2D\u2026",
@@ -48,15 +48,15 @@ var zh = {
   "saveError": "\u4FDD\u5B58\u5931\u8D25",
   "unsaved": "\u6709\u672A\u4FDD\u5B58\u7684\u66F4\u6539",
   "chars": "\u5B57\u7B26",
-  "empty": "\u5F53\u524D\u6CA1\u6709\u81EA\u5B9A\u4E49\u6307\u4EE4\u3002\u8F93\u5165\u5185\u5BB9\u540E\u70B9\u51FB\u4FDD\u5B58\u5373\u53EF\u751F\u6548\u3002"
+  "empty": "\u5F53\u524D\u6CA1\u6709\u81EA\u5B9A\u4E49\u89C4\u5219\u3002\u8F93\u5165\u5185\u5BB9\u540E\u70B9\u51FB\u4FDD\u5B58\u5373\u53EF\u751F\u6548\u3002"
 };
 var en = {
-  "tab": "Custom Instructions",
-  "title": "Global Custom Instructions",
-  "hint": "Content here is saved to ~/.dsh/AGENTS.md. Harness loads and follows these instructions at the start of every session. They do not override system, developer, or direct user instructions.",
+  "tab": "Custom Rules",
+  "title": "Global Custom Rules",
+  "hint": "Content here is saved to ~/.dsh/AGENTS.md. Harness loads and follows these rules at the start of every session. They do not override system, developer, or direct user instructions.",
   "placeholder": "Type your custom rules here\u2026\n\nExample:\n- Always respond in English\n- Write code comments in English\n- Prefer functional style",
-  "loading": "Loading instructions\u2026",
-  "loadError": "Failed to load instructions",
+  "loading": "Loading rules\u2026",
+  "loadError": "Failed to load rules",
   "retry": "Retry",
   "save": "Save",
   "saving": "Saving\u2026",
@@ -64,7 +64,7 @@ var en = {
   "saveError": "Save failed",
   "unsaved": "Unsaved changes",
   "chars": "characters",
-  "empty": "No custom instructions set. Type something and click Save to activate."
+  "empty": "No custom rules set. Type something and click Save to activate."
 };
 var panelStyle = {
   display: "flex",
@@ -111,16 +111,16 @@ var statusStyle = {
   fontSize: 12,
   color: "var(--text-muted-color, #999)"
 };
-async function fetchInstructions() {
-  const res = await fetch("/custom-instructions", { cache: "no-store" });
+async function fetchRules() {
+  const res = await fetch("/custom-rules", { cache: "no-store" });
   const payload = await res.json();
   if (payload.ok !== true || typeof payload.content !== "string") {
     throw new Error(payload.error?.message ?? "fetch failed");
   }
   return payload.content;
 }
-async function saveInstructions(content) {
-  const res = await fetch("/custom-instructions", {
+async function saveRules(content) {
+  const res = await fetch("/custom-rules", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content })
@@ -130,14 +130,14 @@ async function saveInstructions(content) {
     throw new Error(payload.error?.message ?? "save failed");
   }
 }
-function CustomInstructionsTab({ t }) {
+function CustomRulesTab({ t }) {
   const [savedContent, setSavedContent] = (0, import_react.useState)(null);
   const [draft, setDraft] = (0, import_react.useState)("");
   const [status, setStatus] = (0, import_react.useState)("loading");
   const [errorMsg, setErrorMsg] = (0, import_react.useState)("");
   const load = () => {
     setStatus("loading");
-    fetchInstructions().then(
+    fetchRules().then(
       (content) => {
         setSavedContent(content);
         setDraft(content);
@@ -154,7 +154,7 @@ function CustomInstructionsTab({ t }) {
   const save = async () => {
     setStatus("saving");
     try {
-      await saveInstructions(draft);
+      await saveRules(draft);
       setSavedContent(draft);
       setStatus("saved");
     } catch (err) {
@@ -218,15 +218,15 @@ function CustomInstructionsTab({ t }) {
 }
 var inject = ["slots", "locale"];
 function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-custom-instructions: copy");
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-custom-rules: copy");
   const t = ctx.locale.bind(NS);
   ctx.slots.inject("settings.plugins.tab", () => ctx.slots.register({
     name: "settings.plugins.tab",
-    id: "custom-instructions",
+    id: "custom-rules",
     order: 10,
     label: () => t("tab"),
     locale: NS
-  }, CustomInstructionsTab));
+  }, CustomRulesTab));
 }
 
 		return module.exports;

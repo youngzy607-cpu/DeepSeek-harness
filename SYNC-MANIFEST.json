@@ -1,9 +1,9 @@
 {
-  "version": 3,
+  "version": 4,
   "plugins": [
     {
-      "directory": "custom-instructions",
-      "packageName": "dsh-custom-instructions"
+      "directory": "custom-rules",
+      "packageName": "dsh-custom-rules"
     },
     {
       "directory": "harness-sync",
@@ -22,6 +22,8 @@
       "packageName": "dsh-usage-monitor"
     }
   ],
+  "skills": true,
+  "agentsMd": true,
   "excludes": [
     ".credentials.yaml",
     "sessions",

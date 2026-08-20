@@ -1,9 +1,9 @@
 /**
- * dsh-custom-instructions — Host 半边
+ * dsh-custom-rules — Host 半边
  *
- * 注册 GET/POST /custom-instructions：
+ * 注册 GET/POST /custom-rules：
  *  GET  — 读取 ~/.dsh/AGENTS.md 内容返回给前端
- *  POST — 原子写入用户编辑的指令文本到 ~/.dsh/AGENTS.md
+ *  POST — 原子写入用户编辑的规则文本到 ~/.dsh/AGENTS.md
  *
  * 该文件由内置 dsh-agent-instructions 在每个会话首步自动加载并注入，
  * 因此本插件只需提供编辑入口，无需自行注入 agent 指令。
@@ -12,8 +12,8 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const ROUTE_PATH = '/custom-instructions'
-const instructionsPath = join(homedir(), '.dsh', 'AGENTS.md')
+const ROUTE_PATH = '/custom-rules'
+const rulesPath = join(homedir(), '.dsh', 'AGENTS.md')
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body)
@@ -52,7 +52,7 @@ async function writeFileAtomic(filename, content) {
 }
 
 export default {
-  name: 'dsh-custom-instructions',
+  name: 'dsh-custom-rules',
 
   inject: ['webServer'],
 
@@ -65,7 +65,7 @@ export default {
           if (req.method === 'GET') {
             let content = ''
             try {
-              content = await readFile(instructionsPath, 'utf8')
+              content = await readFile(rulesPath, 'utf8')
             } catch (err) {
               if (err.code !== 'ENOENT') throw err
             }
@@ -82,7 +82,7 @@ export default {
               })
               return
             }
-            await writeFileAtomic(instructionsPath, body.content)
+            await writeFileAtomic(rulesPath, body.content)
             sendJson(res, 200, { ok: true })
             return
           }
@@ -92,13 +92,13 @@ export default {
             error: { message: `未找到接口：${req.method} ${ROUTE_PATH}` },
           })
         } catch (err) {
-          if (ctx.logger) ctx.logger.warn(`[custom-instructions] request failed: ${err?.message ?? err}`)
+          if (ctx.logger) ctx.logger.warn(`[custom-rules] request failed: ${err?.message ?? err}`)
           sendJson(res, 500, {
             ok: false,
             error: { message: String(err?.message ?? err) },
           })
         }
       },
-    }), 'dsh-custom-instructions: routes')
+    }), 'dsh-custom-rules: routes')
   },
 }

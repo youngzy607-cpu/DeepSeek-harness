@@ -8,8 +8,11 @@ import { fileURLToPath } from 'node:url'
 const PREFIX = '/harness-sync'
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sourceRoot = resolve(pluginRoot, '..')
-const profileRoot = join(homedir(), '.dsh', 'profiles', 'web')
-const repoRoot = process.env.DSH_HARNESS_SYNC_REPO || join(homedir(), 'Documents', 'Codex', 'DeepSeek-harness-sync-repo')
+const dshHome = join(homedir(), '.dsh')
+const profileRoot = join(dshHome, 'profiles', 'web')
+const skillsRoot = join(dshHome, 'skills')
+const agentsMdPath = join(dshHome, 'AGENTS.md')
+const repoRoot = process.env.DSH_HARNESS_SYNC_REPO || resolve(sourceRoot, '..')
 const withoutDependencies = path => !path.split('/').includes('node_modules')
 const operations = new Map()
 
@@ -122,8 +125,24 @@ async function snapshot() {
   await cp(join(profileRoot, 'cordis.patch.yml'), join(repoRoot, 'profile', 'cordis.patch.yml'), { force: true })
   const packageJson = JSON.parse(await readFile(join(profileRoot, 'package.json'), 'utf8'))
   await writeFile(join(repoRoot, 'profile', 'package.template.json'), JSON.stringify(packageJson, null, 2) + '\n')
-  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 3, plugins, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache', 'node_modules'] }, null, 2) + '\n')
-  return plugins
+  // 同步 Skills 目录
+  let skillsSynced = false
+  try {
+    await cp(skillsRoot, join(repoRoot, 'skills'), { recursive: true, force: true, filter: withoutDependencies })
+    skillsSynced = true
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  // 同步 AGENTS.md
+  let agentsMdSynced = false
+  try {
+    await cp(agentsMdPath, join(repoRoot, 'AGENTS.md'), { force: true })
+    agentsMdSynced = true
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  await writeFile(join(repoRoot, 'SYNC-MANIFEST.json'), JSON.stringify({ version: 4, plugins, skills: skillsSynced, agentsMd: agentsMdSynced, excludes: ['.credentials.yaml', 'sessions', 'storages', 'browser-cache', 'node_modules'] }, null, 2) + '\n')
+  return { plugins, skillsSynced, agentsMdSynced }
 }
 
 async function restore() {
@@ -143,6 +162,19 @@ async function restore() {
   for (const plugin of plugins) packageJson.dependencies[plugin.packageName] = `link:${join(sourceRoot, plugin.directory)}`
   await writeFile(join(profileRoot, 'package.json'), JSON.stringify(packageJson, null, 2) + '\n')
   const addedLoaders = await ensurePluginLoaderEntries(plugins)
+  // 恢复 Skills 目录
+  try {
+    await mkdir(dshHome, { recursive: true })
+    await cp(join(repoRoot, 'skills'), skillsRoot, { recursive: true, force: true, filter: withoutDependencies })
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+  // 恢复 AGENTS.md
+  try {
+    await cp(join(repoRoot, 'AGENTS.md'), agentsMdPath, { force: true })
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
   const packageManager = await profilePackageManager()
   await run(packageManager.command, packageManager.args, profileRoot)
   return { backup, plugins, addedLoaders }
@@ -151,11 +183,11 @@ async function restore() {
 async function execute(operation) {
   try {
     if (operation.kind === 'backup') {
-      const plugins = await record(operation, '生成同步快照', '扫描当前 Harness 自定义插件并生成 Git 快照。', snapshot)
-      operation.plugins = plugins
-      operation.steps.at(-1).detail = `已写入 Git 快照：${pluginSummary(plugins)}。`
-      await record(operation, '检查敏感信息排除', '已排除 API Key、.credentials.yaml、会话、存储、浏览器缓存和 node_modules。', async () => {})
-      await record(operation, '写入 Git 暂存区', '准备提交同步清单、插件源码和 profile 配置。', () => run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins']))
+      const snapshotResult = await record(operation, '生成同步快照', '扫描当前 Harness 自定义插件、Skills 和 AGENTS.md 并生成 Git 快照。', snapshot)
+      operation.plugins = snapshotResult.plugins
+      operation.steps.at(-1).detail = `已写入 Git 快照：${pluginSummary(snapshotResult.plugins)}；Skills ${snapshotResult.skillsSynced ? '已同步' : '无'}；AGENTS.md ${snapshotResult.agentsMdSynced ? '已同步' : '无'}。`
+      await record(operation, '检查敏感信息排除', '已排除 API Key、.credentials.yaml、会话、存储、浏览器缓存和 node_modules。Skills 和 AGENTS.md 中的内容由用户负责。', async () => {})
+      await record(operation, '写入 Git 暂存区', '准备提交同步清单、插件源码、profile 配置、Skills 和 AGENTS.md。', () => run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins', 'skills', 'AGENTS.md']))
       const status = await run('git', ['status', '--short'])
       if (status.out.trim()) await record(operation, '创建本地提交', '记录本次配置快照。', () => run('git', ['commit', '-m', `"harness sync ${new Date().toISOString()}"`]))
       else operation.steps.push({ title: '创建本地提交', detail: '配置没有变化，跳过创建新提交。', state: 'skipped' })
@@ -195,7 +227,7 @@ export default {
           return operation ? json(res, 200, { ok: true, operation }) : json(res, 404, { ok: false, error: { message: '未找到同步任务' } })
         }
         if (req.method === 'POST' && path === `${PREFIX}/backup`) {
-          await snapshot(); await run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins'])
+          await snapshot(); await run('git', ['add', 'SYNC-MANIFEST.json', 'profile', 'plugins', 'skills', 'AGENTS.md'])
           const status = await run('git', ['status', '--short'])
           if (status.out.trim()) await run('git', ['commit', '-m', `"harness sync ${new Date().toISOString()}"`])
           await run('git', ['push', 'origin', 'main'])

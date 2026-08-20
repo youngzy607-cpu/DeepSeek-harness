@@ -1,6 +1,13 @@
 {
   "name": "dsh-profile-web",
   "private": true,
+  "dependencies": {
+    "dsh-plugin-manager": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\plugin-manager",
+    "dsh-usage-monitor": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\usage-monitor",
+    "dsh-harness-sync": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\harness-sync",
+    "dsh-custom-rules": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\custom-rules",
+    "dsh-skill-manager": "link:C:\\Users\\848484\\DeepSeek-harness\\plugins\\skill-manager"
+  },
   "dsh": {
     "profile": {
       "bundles": [
@@ -8,12 +15,5 @@
         "@deepseek-ai/dsh-web-app"
       ]
     }
-  },
-  "dependencies": {
-    "dsh-harness-sync": "link:/Users/jy/Documents/DeepSeek harness/harness-sync",
-    "dsh-plugin-manager": "link:/Users/jy/Documents/DeepSeek harness/plugin-manager",
-    "dsh-usage-monitor": "link:/Users/jy/Documents/DeepSeek harness/usage-monitor",
-    "dsh-custom-instructions": "link:/Users/jy/Documents/DeepSeek harness/custom-instructions",
-    "dsh-skill-manager": "link:/Users/jy/Documents/DeepSeek harness/skill-manager"
   }
 }

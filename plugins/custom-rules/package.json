@@ -1,7 +1,7 @@
 {
-  "name": "dsh-custom-instructions",
+  "name": "dsh-custom-rules",
   "version": "0.1.0",
-  "description": "DeepSeek Harness 全局自定义指令编辑器：在设置 → 我的插件中编辑 ~/.dsh/AGENTS.md，Harness 会在每次会话自动加载并遵守这些规则",
+  "description": "DeepSeek Harness 全局自定义规则编辑器：在设置 → 我的插件中编辑 ~/.dsh/AGENTS.md，Harness 会在每次会话自动加载并遵守这些规则",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
